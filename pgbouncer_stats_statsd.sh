@@ -12,7 +12,15 @@ $PSQL -h "$DB_HOST" -p "$DB_PORT" -c "SHOW STATS;" -U "$DB_USER" -F, -A pgbounce
     while read row ; do
         IFS=',' read -a columns <<< "$row"
         _DB=${columns[0]}
+        
+        # stat names that begin with 'total_' refer to counters, not gauges
+        if [[ ${schema[i]} =~ "total_" ]] ; then
+            stat_type=c
+        else
+            stat_type=g
+        fi
+        
         for i in `seq 1 $((schema_len-1))`; do 
-            echo "pgbouncer.${HOSTNAME}.stats.${_DB}.${schema[i]}:${columns[i]}|g"
+            echo "pgbouncer.${HOSTNAME}.stats.${_DB}.${schema[i]}:${columns[i]}|${stat_type}"
         done
     done > "/dev/udp/${STATSD_HOST}/${STATSD_PORT}"
